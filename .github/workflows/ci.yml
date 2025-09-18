@@ -22,4 +22,5 @@ jobs:
           make test
 
       - name: Run tests
-        run: ./build/test_shell
+        run: 
+          ./build/test_shell
