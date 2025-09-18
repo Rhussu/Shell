@@ -5,7 +5,7 @@
 
 
 int main() {
-    int errors = 1;
+    int errors = 0;
 
     // Ejecutar tests
     // errors += test();

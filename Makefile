@@ -21,4 +21,4 @@ clean:
 
 deps:
 	sudo apt update
-	sudo apt install -y build-essential make libreadline-dev
+	sudo apt install -y build-essential make 
