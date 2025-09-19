@@ -45,5 +45,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ./shell-*-x86_64-linux
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
