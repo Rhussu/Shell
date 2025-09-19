@@ -5,6 +5,38 @@
 #include <sys/wait.h>
 #include "shell.h"
 #include "colors.h"
+#include <dirent.h>
+#include <sys/stat.h>
+#include <errno.h>
+
+void _ls() {
+    DIR *d = opendir(".");
+        if (!d) { _perror("opendir"); return; }
+
+    struct dirent *entry;
+    struct stat st;
+
+    while ((entry = readdir(d)) != NULL) {
+        // Saltar ocultos (los que empiezan con '.')
+        if (entry->d_name[0] == '.') continue;
+
+        if (stat(entry->d_name, &st) == -1) continue;
+
+        if (S_ISDIR(st.st_mode)) {
+            printf("\033[32m%s\033[0m  ", entry->d_name); // verde para carpetas
+        } else {
+            printf("%s  ", entry->d_name);
+        }
+    }
+    printf("\n");
+    closedir(d);
+}
+
+void _perror(const char *context) {
+    fprintf(stderr, RED);
+    perror(context);
+    fprintf(stderr, RESET);
+}
 
 
 int split_pipes(char *line, char **commands) {
@@ -51,12 +83,29 @@ int parse_command(char *cmd, char **args) {
 }
 
 void execute_piped(char *line) {
+    if (strcmp(line, "exit") == 0 || strcmp(line, "EXIT") == 0 || strcmp(line, "Exit") == 0) exit(0);
+    if (strncmp(line, "cd", 2) == 0) {
+        char *path = line + 2;
+        while (*path == ' ') path++;
+
+        if (strcmp(path, "~") == 0) {
+            path = getenv("HOME");  // reemplaza ~ por la ruta home
+        }
+
+        if (chdir(path) != 0) _perror("cd");
+        return;
+    }
+    if (strcmp(line, "ls") == 0) {
+        _ls();
+        return;
+    }
+
     char *commands[64];
     int num_cmds = split_pipes(line, commands);
     int pipefds[2*(num_cmds-1)];
 
     for (int i = 0; i < num_cmds-1; i++) {
-        if (pipe(pipefds + i*2) < 0) { perror("pipe"); exit(1); }
+        if (pipe(pipefds + i*2) < 0) { _perror("pipe"); exit(1); }
     }
 
     for (int i = 0; i < num_cmds; i++) {
@@ -69,10 +118,15 @@ void execute_piped(char *line) {
 
             char *args[MAX_ARGS];
             parse_command(commands[i], args);
-            if (args[0] == NULL) exit(0); // comando vacío
-            execvp(args[0], args);
-            perror("execvp");
-            exit(1);
+            if (args[0] == NULL) exit(0);
+            if (execvp(args[0], args) == -1) {
+                if (errno == ENOENT) {
+                    fprintf(stderr, RED "command not found: %s\n" RESET, args[0]);
+                } else {
+                    _perror("execvp");
+                }
+                exit(1);
+            }
         }
     }
 
@@ -81,17 +135,17 @@ void execute_piped(char *line) {
 }
 
 
-int read_command() {
+int command() {
     char input[MAX_CMD];
     char cwd[MAX_PATH];
 
     // Obtener directorio actual
     if (getcwd(cwd, sizeof(cwd)) == NULL) {
-        perror("getcwd");
+        _perror("getcwd");
         strcpy(cwd, "?"); // fallback
     }
 
-    char* inicio = "/home";
+    char* inicio = getenv("HOME");
     char* reemplazo = MAGENTA"~"GREEN;
     char* str = cwd;
     size_t len_inicio = strlen(inicio);
@@ -106,25 +160,6 @@ int read_command() {
 
     if (!fgets(input, MAX_CMD, stdin)) return -1;
     input[strcspn(input, "\n")] = 0;
-    if (strcmp(input, "exit") == 0 || strcmp(input, "EXIT") == 0 || strcmp(input, "Exit") == 0) return 0;
-    if (strncmp(input, "cd", 2) == 0) {
-        char *path = input + 2;
-        while (*path == ' ') path++;
-
-        if (strcmp(path, "~") == 0) {
-            path = getenv("HOME");  // reemplaza ~ por la ruta home
-        }
-
-        if (chdir(path) != 0) perror("cd");
-        return -1;
-    }
-
-    if (strncmp(input, "cd", 2) == 0) {
-        char *path = input + 2;
-        while (*path == ' ') path++;
-        if (chdir(path) != 0) perror("cd");
-        return -1;
-    }
 
     execute_piped(input);
     return -1;
