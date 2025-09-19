@@ -6,19 +6,25 @@ CFLAGS := -Wall -Iinclude
 SHELL_EXE := $(BUILD_DIR)/shell
 SHELL_EXE_TEST := $(BUILD_DIR)/test_shell
 
-all: shell
+all: clean shell
 
-shell: $(SRC)
+shell:
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(SRC) -o $(SHELL_EXE)
 
-test: $(SRC_test)
+test: clean
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(SRC_TEST) -o $(SHELL_EXE_TEST)
 
 clean:
 	rm -rf $(BUILD_DIR)
 
-deps:
+run_shell:
+	./$(SHELL_EXE)
+
+run_test:
+	./$(SHELL_EXE_TEST)
+
+install_dependencies:
 	sudo apt update
 	sudo apt install -y build-essential make 
