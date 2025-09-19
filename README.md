@@ -12,7 +12,7 @@ Nuestra **Shell** funciona únicamente en **Linux x86_64**.
 Actualmente hay **3 formas** de usarla:
 
 
-### 1️⃣ Opción 1: Usando la release de GitHub
+### 1️⃣ Opción 1: Usando la release de GitHub (sin clonar el repositorio)
 
 Puedes descargar la **última versión** de la shell directamente desde la sección de releases:
 
@@ -21,13 +21,13 @@ Puedes descargar la **última versión** de la shell directamente desde la secci
 **Instrucciones para ejecutar**:  
 
 1. Descarga el archivo desde GitHub.  
-2. Abre una terminal y navega a la carpeta donde se descargó (probablemente `~/Downloads`).  
+2. Abre una terminal y navega a la carpeta donde se descargó.  
 3. Ejecútalo con:
 
 ```bash
 ./shell-<version>-x86_64-linux
 ```
-> ⚠ Asegurate de cambiar `<version>` por la version que descargaste.
+> ⚠ Asegurate de cambiar `<version>` por la versión que descargaste.
 
 
 
