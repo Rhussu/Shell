@@ -19,13 +19,11 @@ jobs:
       - name: Build with make
         run: make install_dependencies shell
 
-      - name: Rename binary
+      - name: Rename binary and Ensure executable permissions
         run: |
           VERSION=${GITHUB_REF_NAME}
           mv ./build/shell ./shell-${VERSION}-x86_64-linux
-
-      - name: Ensure executable permissions
-        run: chmod +x ./shell-${VERSION}-x86_64-linux
+          chmod +x ./shell-${VERSION}-x86_64-linux
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
