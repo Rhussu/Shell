@@ -14,38 +14,45 @@ Actualmente hay **3 formas** de usarla:
 
 ### 1️⃣ Opción 1: Usando la release de GitHub
 
-En la sección de releases de este repositorio hay un ejecutable listo para usar:
+Puedes descargar la **última versión** de la shell directamente desde la sección de releases:
 
 [![Release](https://img.shields.io/github/v/release/Rhussu/Shell?style=flat-square)](https://github.com/Rhussu/Shell/releases/latest)
 
-Haz clic en el badge para descargar la última versión de la shell.
+**Instrucciones para ejecutar**:  
+
+1. Descarga el archivo desde GitHub.  
+2. Abre una terminal y navega a la carpeta donde se descargó (probablemente `~/Downloads`).  
+3. Ejecútalo con:
+
+```bash
+./shell-<version>-x86_64-linux
+```
+> ⚠ Asegurate de cambiar `<version>` por la version que descargaste.
 
 
 
-### 2️⃣ Opción 2: Con `Makefile`
 
-Si tienes `make` instalado en tu dispositivo, desde la raíz del repositorio puedes ejecutar los comandos indicados en tu Makefile.  
+### 2️⃣ Opción 2: Con `make`
+
+Si tienes `make` instalado en tu dispositivo, clona el repositorio y desde la raíz de este puedes ejecutar los comandos indicados en tu Makefile.  
 Esto instalará las dependencias necesarias, compilará la shell y la ejecutará automáticamente.
 
 ```bash
 make install_dependencies shell run_shell
 ```
 
-### 3️⃣ Opción 3: Sin `Makefile`
+### 3️⃣ Opción 3: Sin `make`
 
-Si no tienes `make` instalado, primero instala las herramientas necesarias en tu sistema y luego compila manualmente.  
-Con esto, la shell debería funcionar correctamente.
+Instala las dependencias del proyecto manualmente con:
 
 ```bash
 sudo apt update
 sudo apt install -y build-essential make
-gcc -Wall -Iinclude src/main.c src/shell.c -o build/shell
-./build/shell
 ```
 
 > 💡 **Tip:** Si en este punto ya instalaste `make`, puedes continuar fácilmente siguiendo la [2️⃣ Opción 2: Con `Makefile`](#2️⃣-opción-2-con-makefile) para compilar y ejecutar la shell automáticamente.
 
-Compilación y ejecución manual:
+Luego, clona el repositorio y en la raíz de este ejecuta:
 ```bash
 gcc -Wall -Iinclude src/main.c src/shell.c -o build/shell
 ./build/shell
@@ -55,3 +62,4 @@ gcc -Wall -Iinclude src/main.c src/shell.c -o build/shell
 ## 📄 Informe
 
 > ⚠ **Aviso:** Todavía no está disponible el informe.
+
