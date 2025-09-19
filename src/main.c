@@ -3,9 +3,8 @@
 #include "shell.h"
 
 int main() {
-    int error = -1;
-    while (error == -1) {
-        error = read_command();
+    while (1) {
+        command();
     }
-    return error;
+    return 0;
 }
