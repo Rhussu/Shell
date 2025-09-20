@@ -8,7 +8,10 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
+// Built-in ls
 void _ls() {
     DIR *d = opendir(".");
         if (!d) { _perror("opendir"); return; }
@@ -32,13 +35,14 @@ void _ls() {
     closedir(d);
 }
 
+// Built-in perror con color
 void _perror(const char *context) {
     fprintf(stderr, RED);
     perror(context);
     fprintf(stderr, RESET);
 }
 
-
+// Separa los comandos por pipes
 int split_pipes(char *line, char **commands) {
     int count = 0;
     char *start = line;
@@ -58,6 +62,7 @@ int split_pipes(char *line, char **commands) {
     return count;
 }
 
+// Separa el commando por espacios
 int parse_command(char *cmd, char **args) {
     int i = 0;
     char *p = cmd;
@@ -82,32 +87,22 @@ int parse_command(char *cmd, char **args) {
     return i;
 }
 
+// Ejecuta los pipes
 void execute_piped(char *line) {
-    if (strcmp(line, "exit") == 0 || strcmp(line, "EXIT") == 0 || strcmp(line, "Exit") == 0) exit(0);
-    if (strncmp(line, "cd", 2) == 0) {
-        char *path = line + 2;
-        while (*path == ' ') path++;
-
-        if (strcmp(path, "~") == 0) {
-            path = getenv("HOME");  // reemplaza ~ por la ruta home
-        }
-
-        if (chdir(path) != 0) _perror("cd");
-        return;
-    }
-    if (strcmp(line, "ls") == 0) {
-        _ls();
-        return;
-    }
-
+    // Variables
     char *commands[64];
-    int num_cmds = split_pipes(line, commands);
-    int pipefds[2*(num_cmds-1)];
+    int num_cmds = split_pipes(line, commands); // Dividir por pipes
+    int pipefds[2*(num_cmds-1)];                // File descriptors para los pipes
 
+    // Crear pipes
     for (int i = 0; i < num_cmds-1; i++) {
-        if (pipe(pipefds + i*2) < 0) { _perror("pipe"); exit(1); }
+        if (pipe(pipefds + i*2) < 0) { 
+            _perror("pipe"); 
+            exit(1); 
+        }
     }
 
+    // Crear procesos para cada comando
     for (int i = 0; i < num_cmds; i++) {
         int pid = fork();
         if (pid == 0) {
@@ -118,7 +113,6 @@ void execute_piped(char *line) {
 
             char *args[MAX_ARGS];
             parse_command(commands[i], args);
-            if (args[0] == NULL) exit(0);
             if (execvp(args[0], args) == -1) {
                 if (errno == ENOENT) {
                     fprintf(stderr, RED "command not found: %s\n" RESET, args[0]);
@@ -134,33 +128,70 @@ void execute_piped(char *line) {
     for (int i = 0; i < num_cmds; i++) wait(NULL);
 }
 
+// Procesos pre-execute_piped
+void execute_command(char *line) {
+    // Manejo de línea vacía
+    if (line == NULL || *line == '\0') return;
 
-int command() {
-    char input[MAX_CMD];
+    // Exit
+    if (strcmp(line, "exit") == 0 || strcmp(line, "EXIT") == 0 || strcmp(line, "Exit") == 0) exit(0);
+
+    // Manejo de cd ~ y cd <ruta>
+    if (strncmp(line, "cd", 2) == 0) {
+        char *path = line + 2;
+        while (*path == ' ') path++;
+
+        if (strcmp(path, "~") == 0) {
+            path = getenv("HOME");  // reemplaza ~ por la ruta home
+        }
+
+        if (chdir(path) != 0) _perror("cd");
+        return;
+    }
+
+    // Built-in ls
+    if (strcmp(line, "ls") == 0) {
+        _ls();
+        return;
+    }
+
+    // Ejecutar comando (con o sin pipes)
+    execute_piped(line);
+}
+
+// Función principal del shell, cada comando inicia aquí
+void command() {
+    // Variables
+    char prompt[MAX_PATH + 30]; // Espacio extra para colores y texto fijo
     char cwd[MAX_PATH];
+    char *line = NULL;
 
     // Obtener directorio actual
     if (getcwd(cwd, sizeof(cwd)) == NULL) {
-        _perror("getcwd");
-        strcpy(cwd, "?"); // fallback
+        perror("getcwd");
+        strcpy(cwd, "?"); // en caso de error
     }
 
-    char* inicio = getenv("HOME");
-    char* reemplazo = MAGENTA"~"GREEN;
-    char* str = cwd;
-    size_t len_inicio = strlen(inicio);
-    size_t len_reemplazo = strlen(reemplazo);
-    if (strncmp(cwd, inicio, len_inicio) == 0) {
-        memmove(str + len_reemplazo, str + len_inicio, strlen(str) - len_inicio + 1);
-        memcpy(str, reemplazo, len_reemplazo);
+    // Reemplazo de /home/usuario por ~ y obtener prompt
+    char *inicio = getenv("HOME");
+    if (inicio) {
+        char *reemplazo = MAGENTA"~"GREEN;
+        size_t len_inicio = strlen(inicio);
+        size_t len_reemplazo = strlen(reemplazo);
+
+        if (strncmp(cwd, inicio, len_inicio) == 0) {
+            memmove(cwd + len_reemplazo, cwd + len_inicio, strlen(cwd) - len_inicio + 1);
+            memcpy(cwd, reemplazo, len_reemplazo);
+        }
     }
-    // Mostrar prompt con path actual
-    printf(CYAN "BCRZ:"GREEN"%s"RESET"> ", cwd);
-    fflush(stdout);
+    snprintf(prompt, sizeof(prompt), "%sBCRZ:%s%s%s> ", CYAN, GREEN, cwd, RESET); // Dejar prompt listo.
 
-    if (!fgets(input, MAX_CMD, stdin)) return -1;
-    input[strcspn(input, "\n")] = 0;
+    // Leer línea con readline
+    line = readline(prompt);
+    if (line && *line) add_history(line); // Agregar a historial si no está vacía
 
-    execute_piped(input);
-    return -1;
+    // Ejecutar comando 
+    execute_command(line);
+
+    free(line);
 }

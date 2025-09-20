@@ -10,11 +10,11 @@ all: clean shell
 
 shell:
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -static $(SRC) -o $(SHELL_EXE)
+	$(CC) $(CFLAGS) $(SRC) -o $(SHELL_EXE) -lreadline
 
 test: clean
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(SRC_TEST) -o $(SHELL_EXE_TEST)
+	$(CC) $(CFLAGS) $(SRC_TEST) -o $(SHELL_EXE_TEST) -lreadline
 
 clean:
 	rm -rf $(BUILD_DIR)
@@ -28,3 +28,4 @@ run_test:
 install_dependencies:
 	sudo apt update
 	sudo apt install -y build-essential make 
+	sudo apt-get install libreadline-dev

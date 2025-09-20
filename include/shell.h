@@ -13,7 +13,8 @@ int parse_command(char* line, char** args);
 
 // Pre execution and execution
 void execute_piped(char* line);
-int command();
+void execute_command(char* line);
+void command();
 
 // Built-ins
 void _ls();
