@@ -10,7 +10,7 @@ all: clean shell
 
 shell:
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(SRC) -o $(SHELL_EXE)
+	$(CC) $(CFLAGS) -static $(SRC) -o $(SHELL_EXE)
 
 test: clean
 	@mkdir -p $(BUILD_DIR)
