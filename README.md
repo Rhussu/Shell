@@ -14,6 +14,9 @@ Actualmente hay **3 formas** de usarla:
 
 ### 1️⃣ Opción 1: Usando la release de GitHub (sin clonar el repositorio)
 
+> ⚠️ **Advertencia:**  
+> Esta opción requiere **Linux con glibc >= 2.35**, si no cumples con eso te recomendamos **no utilizar esta opción**.
+
 Puedes descargar la **última versión** de la shell directamente desde la sección de releases:
 
 [![Release](https://img.shields.io/github/v/release/Rhussu/Shell?style=flat-square)](https://github.com/Rhussu/Shell/releases/latest)
