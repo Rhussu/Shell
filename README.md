@@ -1,4 +1,4 @@
-# 💻 Shell - Tarea 1 de Sistemas Operativos
+# 💻 BCRZ Shell - Tarea 1 de Sistemas Operativos
 
 El informe de la tarea se encuentra en el repositorio como [*Informe.pdf*](), pero también está disponible en este README en la sección de [📄 Informe](#-informe).
 
@@ -8,7 +8,7 @@ El informe de la tarea se encuentra en el repositorio como [*Informe.pdf*](), pe
 
 ## 🚀 Getting Started
 
-Nuestra **Shell** funciona únicamente en **Linux x86_64**.  
+Nuestra **BCRZ shell** funciona únicamente en **Linux x86_64**.  
 Actualmente hay **3 formas** de usarla:
 
 
@@ -20,14 +20,18 @@ Puedes descargar la **última versión** de la shell directamente desde la secci
 
 **Instrucciones para ejecutar**:  
 
-1. Descarga el archivo desde GitHub.  
+1. Descarga el archivo desde GitHub.
 2. Abre una terminal y navega a la carpeta donde se descargó.  
-3. Ejecútalo con:
+> 💡 **Tip:** Tambien puedes ejecutar el siguiente comando para descargarlo desde terminal en tu carpeta actual:
+>```bash
+>  curl -L -o BCRZ-x86_64-linux https://github.com/Rhussu/Shell/releases/latest/download/BCRZ-x86_64-linux
+>```
+3. Dale permisos de ejecución y ejecútalo con:
 
 ```bash
-./shell-<version>-x86_64-linux
+chmod +x BCRZ-x86_64-linux
+./BCRZ-x86_64-linux
 ```
-> ⚠ Asegurate de cambiar `<version>` por la versión que descargaste.
 
 
 
@@ -50,7 +54,7 @@ sudo apt update
 sudo apt install -y build-essential make
 ```
 
-> 💡 **Tip:** Si en este punto ya instalaste `make`, puedes continuar fácilmente siguiendo la [2️⃣ Opción 2: Con `Makefile`](#2️⃣-opción-2-con-makefile) para compilar y ejecutar la shell automáticamente.
+> 💡 **Tip:** Si en este punto ya instalaste `make`, puedes continuar fácilmente siguiendo la [2️⃣ Opción 2: Con `Makefile`](#2%EF%B8%8F⃣-opción-2-con-make) para compilar y ejecutar la shell automáticamente.
 
 Luego, clona el repositorio y en la raíz de este ejecuta:
 ```bash

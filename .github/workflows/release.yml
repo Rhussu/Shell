@@ -12,27 +12,24 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |
           make install_dependencies
 
-      - name: Build shell (statically linked)
-        run: |
-          make shell
+      - name: Build shell
+        run: make shell
 
-      - name: Rename binary
+      - name: Rename binary and make executable
         run: |
-          VERSION=${GITHUB_REF_NAME##*/}
-          mv build/shell shell-${VERSION}-x86_64-linux
-          chmod +x shell-${VERSION}-x86_64-linux
+          mv build/shell BCRZ-x86_64-linux
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ./shell-*-x86_64-linux
+          files: ./BCRZ-x86_64-linux
           draft: false
           prerelease: false
         env:
