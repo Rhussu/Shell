@@ -9,36 +9,25 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Build with make
-        run: make install_dependencies shell
-
-      - name: Rename binary and Ensure executable permissions
+      - name: Install dependencies
         run: |
-          VERSION=${GITHUB_REF_NAME}
-          mv ./build/shell ./shell-${VERSION}-x86_64-linux
+          make install_dependencies
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: shell
-          path: ./shell-*-x86_64-linux
+      - name: Build shell (statically linked)
+        run: |
+          make shell
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: shell
+      - name: Rename binary
+        run: |
+          VERSION=${GITHUB_REF_NAME##*/}
+          mv build/shell shell-${VERSION}-x86_64-linux
+          chmod +x shell-${VERSION}-x86_64-linux
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
