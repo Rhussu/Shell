@@ -140,8 +140,8 @@ void execute_command(char *line) {
     if (strncmp(line, "cd", 2) == 0) {
         char *path = line + 2;
         while (*path == ' ') path++;
-
-        if (strcmp(path, "~") == 0) {
+        
+        if ((strcmp(path, "~") == 0) || (strcmp(path, "") == 0)) {
             path = getenv("HOME");  // reemplaza ~ por la ruta home
         }
 

@@ -7,7 +7,7 @@
 
 int test_cdhome() {
     char* command = "cd ~";
-    execute_piped(command);
+    execute_command(command);
     char cwd[MAX_PATH];
     if (getcwd(cwd, sizeof(cwd)) == NULL) {
         perror("getcwd");
