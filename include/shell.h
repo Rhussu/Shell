@@ -20,4 +20,6 @@ void command();
 void _ls();
 void _perror(const char *text);
 
+// miprof
+void run_miprof(char *line);
 #endif

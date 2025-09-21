@@ -11,6 +11,10 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <signal.h>
+
 // Built-in ls
 void _ls() {
     DIR *d = opendir(".");
@@ -155,6 +159,12 @@ void execute_command(char *line) {
         return;
     }
 
+        // Comando miprof
+    if (strncmp(line, "miprof", 6) == 0) {
+        run_miprof(line);
+        return;
+    }
+
     // Ejecutar comando (con o sin pipes)
     execute_piped(line);
 }
@@ -194,4 +204,135 @@ void command() {
     execute_command(line);
 
     free(line);
+}
+//Parte 2
+
+
+// Ejecuta miprof
+void run_miprof(char *line) {
+    char *args[MAX_ARGS];
+    int nargs = parse_command(line, args);
+
+    if (nargs < 3) {
+        fprintf(stderr, RED "Uso: miprof [ejec|ejecsave archivo|ejecutar maxtiempo] comando args...\n" RESET);
+        return;
+    }
+
+    char *modo = args[1];
+
+    // Variables para tiempos y memoria
+    struct timeval start, end;
+    struct rusage usage;
+    pid_t pid;
+
+    // Caso 1: miprof ejec comando args...
+    if (strcmp(modo, "ejec") == 0) {
+        gettimeofday(&start, NULL);
+        pid = fork();
+        if (pid == 0) {
+            execvp(args[2], &args[2]);
+            perror("execvp");
+            exit(1);
+        }
+        waitpid(pid, NULL, 0);
+        gettimeofday(&end, NULL);
+
+        getrusage(RUSAGE_CHILDREN, &usage);
+        double real_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6;
+
+        printf(GREEN "Tiempo real: %.6f s\n" RESET, real_time);
+        printf(GREEN "Tiempo usuario: %.6f s\n" RESET,
+               usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1e6);
+        printf(GREEN "Tiempo sistema: %.6f s\n" RESET,
+               usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1e6);
+        printf(GREEN "Memoria máxima residente: %ld KB\n" RESET, usage.ru_maxrss);
+    }
+
+    // Caso 2: miprof ejecsave archivo comando args...
+    else if (strcmp(modo, "ejecsave") == 0) {
+        if (nargs < 4) {
+            fprintf(stderr, RED "Uso: miprof ejecsave archivo comando args...\n" RESET);
+            return;
+        }
+        char *archivo = args[2];
+
+        gettimeofday(&start, NULL);
+        pid = fork();
+        if (pid == 0) {
+            execvp(args[3], &args[3]);
+            perror("execvp");
+            exit(1);
+        }
+        waitpid(pid, NULL, 0);
+        gettimeofday(&end, NULL);
+        getrusage(RUSAGE_CHILDREN, &usage);
+
+        double real_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6;
+
+        FILE *f = fopen(archivo, "a");
+        if (!f) { perror("fopen"); return; }
+
+        fprintf(f, "Comando: ");
+        for (int i = 3; i < nargs; i++) fprintf(f, "%s ", args[i]);
+        fprintf(f, "\n");
+        fprintf(f, "Tiempo real: %.6f s\n", real_time);
+        fprintf(f, "Tiempo usuario: %.6f s\n",
+                usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1e6);
+        fprintf(f, "Tiempo sistema: %.6f s\n",
+                usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1e6);
+        fprintf(f, "Memoria máxima residente: %ld KB\n\n", usage.ru_maxrss);
+        fclose(f);
+
+        printf(YELLOW "Resultado guardado en %s\n" RESET, archivo);
+    }
+
+    // Caso 3: miprof ejecutar maxtiempo comando args...
+    else if (strcmp(modo, "ejecutar") == 0) {
+        if (nargs < 4) {
+            fprintf(stderr, RED "Uso: miprof ejecutar maxtiempo comando args...\n" RESET);
+            return;
+        }
+        int maxtiempo = atoi(args[2]);
+        if (maxtiempo <= 0) {
+            fprintf(stderr, RED "El tiempo máximo debe ser un número positivo.\n" RESET);
+            return;
+        }
+
+        gettimeofday(&start, NULL);
+        pid = fork();
+        if (pid == 0) {
+            execvp(args[3], &args[3]);
+            perror("execvp");
+            exit(1);
+        }
+
+        int status;
+        double elapsed = 0;
+        while (1) {
+            pid_t result = waitpid(pid, &status, WNOHANG);
+            gettimeofday(&end, NULL);
+            elapsed = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6;
+
+            if (result == pid) break;       // proceso terminó
+            if (elapsed >= maxtiempo) {     // excedió el límite
+                kill(pid, SIGKILL);
+                printf(RED "Proceso terminado por exceder %d segundos\n" RESET, maxtiempo);
+                break;
+            }
+            usleep(100000); // dormir 0.1s
+        }
+
+        getrusage(RUSAGE_CHILDREN, &usage);
+
+        printf(GREEN "Tiempo real: %.6f s\n" RESET, elapsed);
+        printf(GREEN "Tiempo usuario: %.6f s\n" RESET,
+               usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1e6);
+        printf(GREEN "Tiempo sistema: %.6f s\n" RESET,
+               usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1e6);
+        printf(GREEN "Memoria máxima residente: %ld KB\n" RESET, usage.ru_maxrss);
+    }
+
+    else {
+        fprintf(stderr, RED "Modo desconocido: %s\n" RESET, modo);
+    }
 }
