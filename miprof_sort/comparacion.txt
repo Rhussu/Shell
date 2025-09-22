@@ -1,0 +1,30 @@
+Comando: sort -n numeros_100.txt 
+Tiempo real: 0.006620 s
+Tiempo usuario: 0.001405 s
+Tiempo sistema: 0.003254 s
+Memoria máxima residente: 2176 KB
+
+Comando: sort -n numeros_1000.txt 
+Tiempo real: 0.004647 s
+Tiempo usuario: 0.005032 s
+Tiempo sistema: 0.003254 s
+Memoria máxima residente: 2176 KB
+
+Comando: sort -n numeros_10000.txt 
+Tiempo real: 0.006582 s
+Tiempo usuario: 0.007156 s
+Tiempo sistema: 0.005377 s
+Memoria máxima residente: 2560 KB
+
+Comando: sort -n numeros_100000.txt 
+Tiempo real: 0.054436 s
+Tiempo usuario: 0.051099 s
+Tiempo sistema: 0.017362 s
+Memoria máxima residente: 7296 KB
+
+Comando: sort -n numeros_1000000.txt 
+Tiempo real: 0.322667 s
+Tiempo usuario: 0.926678 s
+Tiempo sistema: 0.287310 s
+Memoria máxima residente: 133376 KB
+
