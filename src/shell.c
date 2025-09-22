@@ -234,9 +234,16 @@ void run_miprof(char *line) {
             perror("execvp");
             exit(1);
         }
-        waitpid(pid, NULL, 0);
-        gettimeofday(&end, NULL);
 
+        int status;
+        waitpid(pid, &status, 0);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            printf(RED "Error: el comando '%s' no se ejecutó correctamente (exit code %d)\n" RESET,
+                   args[2], WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+            return;
+        }
+
+        gettimeofday(&end, NULL);
         getrusage(RUSAGE_CHILDREN, &usage);
         double real_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6;
 
@@ -259,11 +266,23 @@ void run_miprof(char *line) {
         gettimeofday(&start, NULL);
         pid = fork();
         if (pid == 0) {
+            freopen("/dev/null", "w", stdout);
+            freopen("/dev/null", "w", stderr);
+            
             execvp(args[3], &args[3]);
             perror("execvp");
             exit(1);
         }
-        waitpid(pid, NULL, 0);
+
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            printf(RED "Error: el comando '%s' no se ejecutó correctamente (exit code %d)\n" RESET,
+                   args[3], WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+            return;
+        }
+
         gettimeofday(&end, NULL);
         getrusage(RUSAGE_CHILDREN, &usage);
 
@@ -320,6 +339,12 @@ void run_miprof(char *line) {
                 break;
             }
             usleep(100000); // dormir 0.1s
+        }
+
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            printf(RED "Error: el comando '%s' no se ejecutó correctamente (exit code %d)\n" RESET,
+                   args[3], WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+            return;
         }
 
         getrusage(RUSAGE_CHILDREN, &usage);
