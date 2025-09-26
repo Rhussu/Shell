@@ -92,21 +92,19 @@ int parse_command(char *cmd, char **args) {
 }
 
 // Ejecuta los pipes
-void execute_piped(char *line) {
-    // Variables
+int execute_piped(char *line) {
     char *commands[64];
-    int num_cmds = split_pipes(line, commands); // Dividir por pipes
-    int pipefds[2*(num_cmds-1)];                // File descriptors para los pipes
+    int num_cmds = split_pipes(line, commands);
+    int pipefds[2*(num_cmds-1)];
+    pid_t pids[64];
 
-    // Crear pipes
     for (int i = 0; i < num_cmds-1; i++) {
-        if (pipe(pipefds + i*2) < 0) { 
-            _perror("pipe"); 
-            exit(1); 
+        if (pipe(pipefds + i*2) < 0) {
+            _perror("pipe");
+            exit(1);
         }
     }
 
-    // Crear procesos para cada comando
     for (int i = 0; i < num_cmds; i++) {
         int pid = fork();
         if (pid == 0) {
@@ -117,19 +115,29 @@ void execute_piped(char *line) {
 
             char *args[MAX_ARGS];
             parse_command(commands[i], args);
-            if (execvp(args[0], args) == -1) {
-                if (errno == ENOENT) {
-                    fprintf(stderr, RED "command not found: %s\n" RESET, args[0]);
-                } else {
-                    _perror("execvp");
-                }
-                exit(1);
+            execvp(args[0], args);
+
+            // Si falla execvp
+            if (errno == ENOENT) {
+                fprintf(stderr, RED "command not found: %s\n" RESET, args[0]);
+            } else {
+                _perror("execvp");
             }
+            _exit(127); // marcar error
         }
+        pids[i] = pid;
     }
 
     for (int i = 0; i < 2*(num_cmds-1); i++) close(pipefds[i]);
-    for (int i = 0; i < num_cmds; i++) wait(NULL);
+
+    int failed = 0;
+    for (int i = 0; i < num_cmds; i++) {
+        int status;
+        waitpid(pids[i], &status, 0);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) failed = 1;
+    }
+
+    return failed;
 }
 
 // Procesos pre-execute_piped
@@ -208,11 +216,11 @@ void command() {
 //Parte 2
 
 
-// Ejecuta miprof
+// Ejecuta miprof completo
 void run_miprof(char *line) {
     char *args[MAX_ARGS];
     char *mode = strtok(line, " "); // "miprof"
-    mode = strtok(NULL, " ");       // ejec | ejecsave | ejecutar
+    mode = strtok(NULL, " ");       // "ejec | ejecsave | ejecutar"
 
     if (!mode) {
         fprintf(stderr, "Uso: miprof [ejec|ejecsave archivo|ejecutar maxtiempo] comando args...\n");
@@ -222,10 +230,7 @@ void run_miprof(char *line) {
     char *savefile = NULL;
     int timeout = -1;
 
-    // --- Parsear según modo ---
-    if (strcmp(mode, "ejec") == 0) {
-        // nada extra
-    } else if (strcmp(mode, "ejecsave") == 0) {
+    if (strcmp(mode, "ejecsave") == 0) {
         savefile = strtok(NULL, " ");
         if (!savefile) {
             fprintf(stderr, "Debe indicar un archivo para ejecsave.\n");
@@ -238,50 +243,49 @@ void run_miprof(char *line) {
             return;
         }
         timeout = atoi(t);
-    } else {
-        fprintf(stderr, "Modo inválido: %s\n", mode);
-        return;
     }
 
-    // --- Obtener comando completo (con args y pipes) ---
-    char *cmdline = strtok(NULL, ""); // el resto de la línea
+    char *cmdline = strtok(NULL, "");
     if (!cmdline) {
         fprintf(stderr, "Debe indicar un comando a ejecutar.\n");
         return;
     }
 
-    // --- Medición de tiempo real ---
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
     pid_t pid = fork();
-    if (pid < 0) {
-        perror("fork");
-        return;
-    }
+    if (pid < 0) { perror("fork"); return; }
 
-    if (pid == 0) {
-        // Hijo: ejecutar comando/pipes
-        setpgid(0, 0); // crear nuevo grupo para matar todos los procesos si timeout
+    if (pid == 0) { // hijo
+        setpgid(0,0); // grupo propio
 
-        // Si hay pipes en cmdline → usar execute_piped
-        if (strchr(cmdline, '|')) {
-            execute_piped(cmdline);
-            _exit(0);
-        } else {
-            // Caso simple sin pipes
+        // Redirección si es ejecsave
+        if (savefile) {
+            FILE *devnull = fopen("/dev/null","w");
+            if (devnull) {
+                dup2(fileno(devnull), STDOUT_FILENO);
+                dup2(fileno(devnull), STDERR_FILENO);
+                fclose(devnull);
+            }
+        }
+
+        int ret;
+        if (strchr(cmdline,'|')) ret = execute_piped(cmdline);
+        else {
             parse_command(cmdline, args);
             execvp(args[0], args);
-            perror("execvp");
-            _exit(1);
+            if (errno == ENOENT) _exit(127); // comando no encontrado
+            else _exit(126); // otro error exec
         }
-    } else {
-        // Padre: controlar tiempo, esperar y medir recursos
+        _exit(ret ? 127 : 0);
+    } 
+    else { // padre
         int status;
         struct rusage usage;
+        int timed_out = 0;
 
         if (timeout > 0) {
-            // Espera con timeout
             int elapsed = 0;
             while (elapsed < timeout) {
                 pid_t w = waitpid(pid, &status, WNOHANG);
@@ -290,43 +294,63 @@ void run_miprof(char *line) {
                 elapsed++;
             }
             if (elapsed >= timeout) {
-                fprintf(stderr, "Tiempo excedido (%d s). Matando proceso.\n", timeout);
-                kill(-pid, SIGKILL); // matar grupo completo
+                timed_out = 1;
+                kill(-pid, SIGKILL);
                 waitpid(pid, &status, 0);
             }
         } else {
             waitpid(pid, &status, 0);
         }
 
-        gettimeofday(&end, NULL);
-        getrusage(RUSAGE_CHILDREN, &usage);
+        gettimeofday(&end,NULL);
+        getrusage(RUSAGE_CHILDREN,&usage);
 
-        double real = (end.tv_sec - start.tv_sec) +
-                      (end.tv_usec - start.tv_usec) / 1000000.0;
-        double user = usage.ru_utime.tv_sec + usage.ru_utime.tv_usec / 1e6;
-        double sys  = usage.ru_stime.tv_sec + usage.ru_stime.tv_usec / 1e6;
+        double real = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6;
+        double user = usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1e6;
+        double sys  = usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1e6;
         long maxrss = usage.ru_maxrss;
 
-        // --- Imprimir resultados ---
-        printf("\n--- Resultados miprof ---\n");
-        printf("Tiempo real:   %.6f s\n", real);
-        printf("Tiempo usuario: %.6f s\n", user);
-        printf("Tiempo sistema: %.6f s\n", sys);
-        printf("Memoria pico:   %ld KB\n", maxrss);
+        // Detectar si comando no existe
+        int command_not_found = WIFEXITED(status) && WEXITSTATUS(status) == 127;
 
-        // --- Guardar en archivo si corresponde ---
-        if (savefile) {
-            FILE *f = fopen(savefile, "a");
-            if (!f) {
-                perror("fopen");
-                return;
+        if (command_not_found) {
+            fprintf(stderr, RED "Error: comando no encontrado. No se muestran resultados miprof.\n" RESET);
+            return;
+        }
+
+        if (timed_out) {
+            // comando existía, pero se excedió el tiempo
+            printf("\n--- Resultados miprof ---\n");
+            printf("Tiempo real:   %.6f s\n", real);
+            printf("Tiempo usuario: %.6f s\n", user);
+            printf("Tiempo sistema: %.6f s\n", sys);
+            printf("Memoria pico:   %ld KB\n", maxrss);
+            fprintf(stderr, "Tiempo excedido (%d s). Matando proceso.\n", timeout);
+        }
+        else if (!WIFEXITED(status) || WEXITSTATUS(status)!=0) {
+            // otro error (comando existe pero falló)
+            fprintf(stderr, RED "Error: comando falló. No se muestran resultados miprof.\n" RESET);
+        }
+        else {
+            // éxito
+            if (savefile) {
+                FILE *f = fopen(savefile,"a");
+                if(f){
+                    fprintf(f, "\nComando: %s\n", cmdline);
+                    fprintf(f, "Tiempo real:   %.6f s\n", real);
+                    fprintf(f, "Tiempo usuario: %.6f s\n", user);
+                    fprintf(f, "Tiempo sistema: %.6f s\n", sys);
+                    fprintf(f, "Memoria pico:   %ld KB\n", maxrss);
+                    fclose(f);
+                    printf("Resultados guardados en %s\n", savefile);
+                }
+            } else {
+                printf("\n--- Resultados miprof ---\n");
+                printf("Tiempo real:   %.6f s\n", real);
+                printf("Tiempo usuario: %.6f s\n", user);
+                printf("Tiempo sistema: %.6f s\n", sys);
+                printf("Memoria pico:   %ld KB\n", maxrss);
             }
-            fprintf(f, "\n--- Comando: %s ---\n", cmdline);
-            fprintf(f, "Tiempo real:   %.6f s\n", real);
-            fprintf(f, "Tiempo usuario: %.6f s\n", user);
-            fprintf(f, "Tiempo sistema: %.6f s\n", sys);
-            fprintf(f, "Memoria pico:   %ld KB\n", maxrss);
-            fclose(f);
         }
     }
 }

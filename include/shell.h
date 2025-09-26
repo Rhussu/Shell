@@ -12,7 +12,7 @@ int split_pipes(char* line, char** commands);
 int parse_command(char* line, char** args);
 
 // Pre execution and execution
-void execute_piped(char* line);
+int execute_piped(char* line);
 void execute_command(char* line);
 void command();
 
