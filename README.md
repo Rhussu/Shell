@@ -1,8 +1,6 @@
 # 💻 BCRZ Shell - Tarea 1 de Sistemas Operativos
 
-El informe de la tarea se encuentra en el repositorio como [*Informe.pdf*](), pero también está disponible en este README en la sección de [📄 Informe](#-informe).
-
-> ⚠ **Aviso:** Todavía no está disponible *Informe.pdf*.
+El informe de la tarea se encuentra en el repositorio como [*Informe.pdf*](https://github.com/Rhussu/Shell/blob/main/Informe.pdf)
 
 ---
 
@@ -64,9 +62,4 @@ Luego, clona el repositorio y en la raíz de este ejecuta:
 gcc -Wall -Iinclude src/main.c src/shell.c -o build/shell
 ./build/shell
 ```
-
-
-## 📄 Informe
-
-> ⚠ **Aviso:** Todavía no está disponible el informe.
 
