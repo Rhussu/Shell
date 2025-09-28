@@ -53,6 +53,7 @@ Instala las dependencias del proyecto manualmente con:
 ```bash
 sudo apt update
 sudo apt install -y build-essential make
+sudo apt-get install libreadline-dev
 ```
 
 > 💡 **Tip:** Si en este punto ya instalaste `make`, puedes continuar fácilmente siguiendo la [2️⃣ Opción 2: Con `Makefile`](#2%EF%B8%8F⃣-opción-2-con-make) para compilar y ejecutar la shell automáticamente.
@@ -62,4 +63,5 @@ Luego, clona el repositorio y en la raíz de este ejecuta:
 gcc -Wall -Iinclude src/main.c src/shell.c -o build/shell
 ./build/shell
 ```
+
 
